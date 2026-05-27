@@ -59,10 +59,10 @@ stellar-classifier/
 │   └── evaluate.py         # shared metrics + plotting
 ├── experiments/
 │   ├── 01_model_comparison.py     # [done] compare 4 models on clean features
-│   ├── 02_feature_leakage.py      # [planned] quantify redshift leakage
-│   ├── 03_noise_robustness.py     # [planned] accuracy vs injected noise
-│   ├── 04_feature_ablation.py     # [planned] which bands matter
-│   └── 05_dataset_shift.py        # [planned] train/test on different regions
+│   ├── 02_feature_leakage.py      # [done] quantify redshift leakage
+│   ├── 03_noise_robustness.py     # [done] accuracy vs injected noise
+│   ├── 04_feature_ablation.py     # [done] which bands matter + stability
+│   └── 05_dataset_shift.py        # [done] train/test on different regions
 ├── results/                # figures and tables are written here
 └── paper/
     └── outline.md          # the write-up structure
@@ -95,13 +95,47 @@ Trains Logistic Regression, Random Forest, Gradient Boosting, and k-NN on the
 identical clean split and reports accuracy, macro-F1, weighted-F1, and training
 time. Establishes the baseline context that a single-model notebook lacks.
 
-### 02–05 *(planned)*
-Feature leakage, noise robustness, feature ablation, and dataset shift — each
-will follow the same module pattern: import the shared loader, run one focused
-study, write figures/tables to `results/`.
+### 02 — Feature leakage *(implemented)*
+Trains the same Random Forest with and without `redshift` and reports the gap.
+Redshift is a spectroscopically-derived near-label (stars ~0, quasars high), so
+adding it inflates accuracy without teaching the model to classify from
+photometry. The experiment shows the accuracy jump, the per-class change, and a
+feature-importance chart where redshift dwarfs the five photometric bands.
+
+### 03 — Noise robustness *(implemented)*
+Trains all four models on clean data, then measures accuracy as Gaussian noise
+is injected into the test features at increasing levels (expressed as multiples
+of each feature's own standard deviation, so the noise is comparable across
+features). Produces a degradation curve per model — revealing which models
+stay stable under noise and which collapse, a distinction invisible from clean
+test accuracy alone.
+
+### 04 — Feature ablation & importance stability *(implemented)*
+Two parts. Ablation: drop each photometric band in turn and measure the
+accuracy cost, revealing which bands are load-bearing. Stability: retrain the
+Random Forest across multiple random seeds and check whether the
+feature-importance ranking holds — a ranking that flips between runs can't be
+interpreted, so confirming it's stable is what makes any "this band matters
+most" claim meaningful.
+
+### 05 — Dataset shift *(implemented)*
+The most realistic test in the study. Every other experiment used a random
+split where test data looks like training data; real surveys aren't like that.
+This splits the data by `r`-band brightness and trains on one regime while
+testing on the other (bright→faint and faint→bright), comparing against a
+random-split baseline of equal training size. The gap between them is the
+generalization gap — how much random-split accuracy overstates real-world
+performance. The class balance of each regime is reported so the covariate-
+vs-label-shift distinction is transparent.
 
 ## Status
 
-This is an in-progress project. Experiment 01 is complete; the robustness
-experiments are being added incrementally so each is understood before the next
-is built.
+All five experiments are implemented. The project is a complete research-style
+study: a single notebook restructured into a reproducible, modular repository
+with five focused experiments on model comparison, feature leakage, noise
+robustness, feature ablation, and dataset shift.
+
+This is a rigorous portfolio/research-style project, not a claim of novel
+published research. Several findings (e.g. redshift leakage, noise degradation)
+re-confirm known results carefully; the value is in the rigor, reproducibility,
+and honest analysis.
